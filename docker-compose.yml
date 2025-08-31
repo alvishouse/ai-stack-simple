@@ -1,109 +1,61 @@
-# Fixed docker-compose.yml - copy this entire content to replace your local file
 services:
-  postgres:
-    image: postgres:15-alpine
+  n8n:
+    image: n8nio/n8n:latest
     restart: unless-stopped
+    ports:
+      - "5678:5678"
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      TIMEZONE: ${TIMEZONE}
+      - N8N_HOST=${SERVER_IP}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://${SERVER_IP}:5678
+      - GENERIC_TIMEZONE=${TIMEZONE}
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    command: redis-server --requirepass ${REDIS_PASSWORD}
-    volumes:
-      - redis_data:/data
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-
-  langfuse:
-    image: langfuse/langfuse:2
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-    ports:
-      - "3005:3000"
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${LANGFUSE_DB}
-      NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET}
-      SALT: ${LANGFUSE_SALT}
-      ENCRYPTION_KEY: ${LANGFUSE_ENCRYPTION_KEY}
-      NEXTAUTH_URL: http://${SERVER_IP}:3005
-      TELEMETRY_ENABLED: false
-      LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: true
+      - n8n_data:/home/node/.n8n
 
   flowise:
     image: flowiseai/flowise:latest
     restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
     ports:
       - "3001:3000"
     environment:
-      DATABASE_TYPE: postgres
-      DATABASE_HOST: postgres
-      DATABASE_PORT: 5432
-      DATABASE_USER: ${POSTGRES_USER}
-      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
-      DATABASE_NAME: ${FLOWISE_DB}
-      APIKEY_PATH: /root/.flowise
-      SECRETKEY_PATH: /root/.flowise
-      FLOWISE_USERNAME: ${FLOWISE_USERNAME}
-      FLOWISE_PASSWORD: ${FLOWISE_PASSWORD}
+      - FLOWISE_USERNAME=${FLOWISE_USER}
+      - FLOWISE_PASSWORD=${FLOWISE_PASSWORD}
     volumes:
       - flowise_data:/root/.flowise
 
-  n8n:
-    image: n8nio/n8n:latest
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:main
     restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
     ports:
-      - "5678:5678"
+      - "8080:8080"
     environment:
-      DB_TYPE: postgresdb
-      DB_POSTGRESDB_HOST: postgres
-      DB_POSTGRESDB_PORT: 5432
-      DB_POSTGRESDB_DATABASE: ${N8N_DB}
-      DB_POSTGRESDB_USER: ${POSTGRES_USER}
-      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
-      N8N_HOST: ${SERVER_IP}
-      N8N_PORT: 5678
-      N8N_PROTOCOL: http
-      WEBHOOK_URL: http://${SERVER_IP}:5678
-      GENERIC_TIMEZONE: ${TIMEZONE}
-      N8N_BASIC_AUTH_ACTIVE: true
-      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER}
-      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL}
+      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
     volumes:
-      - n8n_data:/home/node/.n8n
+      - openwebui_data:/app/backend/data
+
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    volumes:
+      - litellm_data:/app/proxy_server_config
 
 volumes:
-  postgres_data:
-  redis_data:
-  flowise_data:
   n8n_data:
+  flowise_data:
+  openwebui_data:
+  litellm_data:
 
 networks:
   default:
-    name: ai-stack
+    name: ai-simple

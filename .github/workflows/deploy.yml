@@ -1,5 +1,4 @@
-# .github/workflows/deploy.yml
-name: Deploy AI Stack Simple
+name: Deploy Simple AI Stack
 
 on:
   push:
@@ -20,9 +19,6 @@ jobs:
     name: Deploy to Development
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev')
-    environment:
-      name: development
-      url: http://147.93.185.141:3000
     
     steps:
     - name: Deploy to Development Server
@@ -33,20 +29,16 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         port: 22
         script: |
-          cd /opt/ai-stack
+          cd /opt/ai-stack-simple
           git pull origin main
-          chmod +x scripts/deploy.sh
-          ./scripts/deploy.sh
-          ./scripts/health-check.sh
+          chmod +x deploy.sh
+          ./deploy.sh
 
   deploy-prod:
     name: Deploy to Production
     runs-on: ubuntu-latest
     needs: deploy-dev
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod'
-    environment:
-      name: production
-      url: http://147.93.181.151:3000
     
     steps:
     - name: Deploy to Production Server
@@ -57,20 +49,7 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         port: 22
         script: |
-          cd /opt/ai-stack
+          cd /opt/ai-stack-simple
           git pull origin main
-          chmod +x scripts/deploy.sh
-          ./scripts/deploy.sh
-          ./scripts/health-check.sh
-
-  notify:
-    name: Notify Deployment Status
-    runs-on: ubuntu-latest
-    needs: [deploy-dev, deploy-prod]
-    if: always()
-    steps:
-    - name: Deployment Complete
-      run: |
-        echo "Deployment Status:"
-        echo "Development: ${{ needs.deploy-dev.result }}"
-        echo "Production: ${{ needs.deploy-prod.result }}"
+          chmod +x deploy.sh
+          ./deploy.sh
