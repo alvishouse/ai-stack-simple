@@ -1,6 +1,4 @@
-# docker-compose.yml
-version: '3.8'
-
+# Fixed docker-compose.yml - copy this entire content to replace your local file
 services:
   postgres:
     image: postgres:15-alpine
@@ -53,7 +51,7 @@ services:
       LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: true
 
   flowise:
-    image: flowiseai/flowise:1.4.8
+    image: flowiseai/flowise:latest
     restart: unless-stopped
     depends_on:
       postgres:
@@ -75,7 +73,7 @@ services:
       - flowise_data:/root/.flowise
 
   n8n:
-    image: n8nio/n8n:1.13.1
+    image: n8nio/n8n:latest
     restart: unless-stopped
     depends_on:
       postgres:
