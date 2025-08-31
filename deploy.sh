@@ -13,6 +13,19 @@ fi
 # Load environment variables
 export $(cat .env | grep -v '^#' | xargs)
 
+# Install nginx if not present
+if ! command -v nginx &> /dev/null; then
+    echo "📦 Installing nginx..."
+    apt update && apt install -y nginx
+fi
+
+# Copy nginx configuration
+echo "⚙️ Setting up nginx..."
+cp nginx/bionicvault.conf /etc/nginx/sites-available/
+ln -sf /etc/nginx/sites-available/bionicvault.conf /etc/nginx/sites-enabled/
+rm -f /etc/nginx/sites-enabled/default
+nginx -t && systemctl reload nginx
+
 # Pull latest images
 echo "📦 Pulling Docker images..."
 docker-compose pull
@@ -29,30 +42,14 @@ docker-compose up -d
 echo "⏳ Waiting for services to be ready..."
 sleep 30
 
-# Check service health
-echo "🏥 Checking service health..."
-
-services=("n8n:5678" "flowise:3001" "openwebui:8080" "litellm:4000")
-
-for service in "${services[@]}"; do
-    name=${service%:*}
-    port=${service#*:}
-    echo "Checking $name..."
-    if curl -f -s -o /dev/null --max-time 10 "http://localhost:$port" || curl -f -s -o /dev/null --max-time 10 "http://localhost:$port/health"; then
-        echo "✅ $name is healthy"
-    else
-        echo "⚠️ $name may still be starting up"
-    fi
-done
-
 echo ""
 echo "✅ Deployment completed!"
 echo ""
 echo "🌐 Access your services:"
-echo "• n8n:        http://${SERVER_IP}:5678"
-echo "• Flowise:    http://${SERVER_IP}:3001"  
-echo "• Open WebUI: http://${SERVER_IP}:8080"
-echo "• LiteLLM:    http://${SERVER_IP}:4000"
+echo "• Flowise:    http://flowise.bionicvault.com"
+echo "• n8n:        http://n8n.bionicvault.com" 
+echo "• Open WebUI: http://openwebui.bionicvault.com"
+echo "• LiteLLM:    http://litellm.bionicvault.com"
 echo ""
 
 docker-compose ps
