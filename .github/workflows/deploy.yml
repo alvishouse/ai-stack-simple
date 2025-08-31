@@ -2,9 +2,9 @@ name: Deploy AI Stack
 
 on:
   push:
-    branches: [ develop ]  # Auto-deploy develop to dev
+    branches: [ dev ]          # Auto-deploy dev branch to dev server
   pull_request:
-    branches: [ main ]     # Allow PRs to main
+    branches: [ main ]         # Allow PRs from dev to main  
   workflow_dispatch:
     inputs:
       environment:
@@ -19,7 +19,7 @@ jobs:
   deploy-dev:
     name: Deploy to Development
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
     
     steps:
     - name: Deploy to Development Server
@@ -32,8 +32,8 @@ jobs:
         script: |
           cd /opt/ai-stack-simple
           git fetch origin
-          git checkout develop
-          git pull origin develop
+          git checkout dev
+          git pull origin dev
           chmod +x deploy.sh
           ./deploy.sh
 
