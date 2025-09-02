@@ -87,6 +87,8 @@ services:
       - PORT=4000      
     volumes:
       - litellm_data:/app/litellm_data
+    depends_on:
+      - postgres
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
       interval: 30s
